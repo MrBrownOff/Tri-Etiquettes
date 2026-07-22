@@ -37,7 +37,12 @@ export const ProjectView: React.FC = () => {
   const handleGeneratePrinterPDF = async () => {
     setIsGeneratingPDF(true);
     try {
-      await generatePrinterPDF(labels, stores);
+      const { missingLabels } = await generatePrinterPDF(labels, stores);
+      if (missingLabels.length > 0) {
+        alert(
+          `Le PDF a été généré, mais l'image de ${missingLabels.length} étiquette(s) était introuvable et a été omise : ${missingLabels.join(', ')}`
+        );
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Impossible de générer le PDF.');
     } finally {
