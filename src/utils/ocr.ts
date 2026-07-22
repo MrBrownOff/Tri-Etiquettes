@@ -1,0 +1,44 @@
+import Tesseract from 'tesseract.js';
+
+let worker: Tesseract.Worker | null = null;
+
+export const initOCR = async () => {
+  if (!worker) {
+    worker = await Tesseract.createWorker();
+    await worker.loadLanguage('eng');
+    await worker.initialize('eng');
+  }
+  return worker;
+};
+
+export const preprocessCanvas = (canvas: HTMLCanvasElement): string => {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas.toDataURL();
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const luminance = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    const color = luminance > 150 ? 255 : 0;
+    data[i] = data[i + 1] = data[i + 2] = color;
+  }
+  ctx.putImageData(imageData, 0, 0);
+  return canvas.toDataURL('image/jpeg', 1.0);
+};
+
+export const extractReferenceFromImage = async (
+  fullPageCanvas: HTMLCanvasElement,
+  workerInstance: Tesseract.Worker
+) => {
+  const cropConfig = { x: fullPageCanvas.width * 0.25, y: fullPageCanvas.height * 0.02, width: fullPageCanvas.width * 0.50, height: fullPageCanvas.height * 0.15 };
+  const croppedCanvas = document.createElement('canvas');
+  croppedCanvas.width = cropConfig.width; croppedCanvas.height = cropConfig.height;
+  const ctx = croppedCanvas.getContext('2d');
+  ctx?.drawImage(fullPageCanvas, cropConfig.x, cropConfig.y, cropConfig.width, cropConfig.height, 0, 0, cropConfig.width, cropConfig.height);
+
+  const { data } = await workerInstance.recognize(preprocessCanvas(croppedCanvas));
+  return {
+    reference: data.text.replace(/[\s\n]+/g, '').replace(/[^A-Za-z0-9-]/g, '').trim(),
+    confidence: data.confidence,
+    thumbnailUrl: preprocessCanvas(croppedCanvas)
+  };
+};
