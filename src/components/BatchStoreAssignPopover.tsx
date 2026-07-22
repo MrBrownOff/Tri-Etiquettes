@@ -1,7 +1,7 @@
 // src/components/BatchStoreAssignPopover.tsx
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAppStore, StoreItem } from '../store/store';
-import { Search, ChevronDown, Tag, X } from 'lucide-react';
+import { Search, ChevronDown, Tag, X, Trash2 } from 'lucide-react';
 
 const getBannerName = (store: StoreItem): string => {
   if (store.banner && store.banner !== 'Indépendant' && store.banner.trim() !== '') {
@@ -27,7 +27,7 @@ interface BatchStoreAssignPopoverProps {
 }
 
 export const BatchStoreAssignPopover: React.FC<BatchStoreAssignPopoverProps> = ({ selectedLabelIds, onComplete }) => {
-  const { stores, assignStoresToLabels } = useAppStore();
+  const { stores, assignStoresToLabels, removeStoresFromLabels } = useAppStore();
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedTargetStoreIds, setSelectedTargetStoreIds] = useState<string[]>([]);
@@ -92,6 +92,14 @@ export const BatchStoreAssignPopover: React.FC<BatchStoreAssignPopoverProps> = (
     if (onComplete) onComplete();
   };
 
+  const handleRemoveBatch = () => {
+    if (selectedTargetStoreIds.length === 0 || selectedLabelIds.length === 0) return;
+    removeStoresFromLabels(selectedLabelIds, selectedTargetStoreIds);
+    setSelectedTargetStoreIds([]);
+    setIsOpen(false);
+    if (onComplete) onComplete();
+  };
+
   return (
     <div className="relative inline-block" ref={popoverRef}>
       <div className="flex items-center gap-2">
@@ -116,6 +124,15 @@ export const BatchStoreAssignPopover: React.FC<BatchStoreAssignPopoverProps> = (
           className="bg-slate-900 hover:bg-slate-800 disabled:bg-gray-200 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition shadow-xs whitespace-nowrap"
         >
           Affecter la sélection
+        </button>
+
+        {/* Bouton de retrait */}
+        <button
+          onClick={handleRemoveBatch}
+          disabled={selectedTargetStoreIds.length === 0 || selectedLabelIds.length === 0}
+          className="bg-red-50 hover:bg-red-100 disabled:bg-gray-100 disabled:text-gray-400 text-red-600 px-4 py-1.5 rounded-lg text-sm font-medium transition shadow-xs whitespace-nowrap flex items-center gap-1.5"
+        >
+          <Trash2 size={15} /> Retirer la sélection
         </button>
       </div>
 
