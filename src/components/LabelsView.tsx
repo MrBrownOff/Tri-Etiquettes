@@ -38,6 +38,7 @@ export const LabelsView: React.FC = () => {
         name: '',
         banner: '',
         stores: [],
+        quantity: 0,
       });
     });
 
@@ -246,15 +247,32 @@ export const LabelsView: React.FC = () => {
 
                   {/* Corps de carte : Référence modifiable */}
                   <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                    <div>
-                      <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">Référence produit</label>
-                      <input
-                        type="text"
-                        value={label.reference}
-                        onChange={(e) => updateLabel(label.id, { reference: e.target.value })}
-                        className="w-full font-mono font-bold text-gray-800 bg-gray-50 border border-gray-200 rounded px-2.5 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
-                        placeholder="Référence..."
-                      />
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1">
+                        <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">Référence produit</label>
+                        <input
+                          type="text"
+                          value={label.reference}
+                          onChange={(e) => updateLabel(label.id, { reference: e.target.value })}
+                          className="w-full font-mono font-bold text-gray-800 bg-gray-50 border border-gray-200 rounded px-2.5 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
+                          placeholder="Référence..."
+                        />
+                      </div>
+                      <div className="w-16">
+                        <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">Qté</label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={2}
+                          value={label.quantity ?? ''}
+                          onChange={(e) => {
+                            const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 2);
+                            updateLabel(label.id, { quantity: digitsOnly === '' ? 0 : Number(digitsOnly) });
+                          }}
+                          placeholder="0"
+                          className="w-full text-center font-mono font-bold text-gray-800 bg-gray-50 border border-gray-200 rounded px-2.5 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
+                        />
+                      </div>
                     </div>
 
                     {/* Magasins affectés sous forme de Badges */}
