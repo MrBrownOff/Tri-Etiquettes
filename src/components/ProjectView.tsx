@@ -1,13 +1,18 @@
 // src/components/ProjectView.tsx
 import React, { useRef, useState } from 'react';
 import { useAppStore } from '../store/store';
-import { Save, Download, Upload, CheckCircle2 } from 'lucide-react';
+import { Save, Download, Upload, CheckCircle2, Printer, Loader2 } from 'lucide-react';
 import { generateExports } from '../utils/export';
+import { generatePrinterPDF } from '../utils/printerExport';
 
 export const ProjectView: React.FC = () => {
   const { labels, stores, exportProject, importProject } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  const labelsWithQuantity = labels.filter((l) => (l.quantity ?? 0) > 0);
+  const totalToPrint = labelsWithQuantity.reduce((sum, l) => sum + (l.quantity ?? 0), 0);
 
   // Import de la sauvegarde JSON
   const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -26,6 +31,18 @@ export const ProjectView: React.FC = () => {
       }
     };
     reader.readAsText(file);
+  };
+
+  // Génération du PDF prêt pour l'imprimeur (page de garde + étiquettes en quantité)
+  const handleGeneratePrinterPDF = async () => {
+    setIsGeneratingPDF(true);
+    try {
+      await generatePrinterPDF(labels, stores);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Impossible de générer le PDF.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   // Export CSV final d'affectation
@@ -110,6 +127,30 @@ export const ProjectView: React.FC = () => {
           className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm transition flex items-center gap-2"
         >
           <Download size={16} /> Générer le fichier CSV d'affectations
+        </button>
+      </div>
+
+      {/* Bon de commande PDF pour l'imprimeur */}
+      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-xs space-y-4">
+        <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+          <Printer size={18} className="text-slate-700" /> Bon d'impression (PDF)
+        </h2>
+        <p className="text-xs text-gray-500">
+          Génère un PDF prêt pour l'imprimeur : une page de garde récapitulant les étiquettes commandées
+          (nom de fichier, quantité, magasin(s)), suivie des étiquettes en autant d'exemplaires que la quantité renseignée.
+        </p>
+        <p className="text-xs font-medium text-gray-600">
+          {labelsWithQuantity.length === 0
+            ? 'Aucune quantité renseignée pour le moment.'
+            : `${labelsWithQuantity.length} référence(s), ${totalToPrint} étiquette(s) à imprimer.`}
+        </p>
+        <button
+          onClick={handleGeneratePrinterPDF}
+          disabled={isGeneratingPDF || labelsWithQuantity.length === 0}
+          className="bg-slate-900 hover:bg-slate-800 disabled:bg-gray-200 text-white font-medium px-5 py-2.5 rounded-lg text-sm transition flex items-center gap-2"
+        >
+          {isGeneratingPDF ? <Loader2 size={16} className="animate-spin" /> : <Printer size={16} />}
+          {isGeneratingPDF ? 'Génération en cours...' : "Générer le PDF pour l'imprimeur"}
         </button>
       </div>
     </div>

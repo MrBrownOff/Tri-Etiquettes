@@ -17,6 +17,7 @@ export interface LabelItem {
   name: string;
   banner: string; // ex: "Canac", "BMR", "Rona", "Patrick Morin", "Indépendant"
   stores: string[]; // Liste des IDs de magasins assignés
+  quantity?: number; // Quantité commandée (0-99)
 }
 
 // Détection automatique de la bannière à partir du nom du magasin
