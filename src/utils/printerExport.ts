@@ -1,8 +1,15 @@
 import jsPDF from 'jspdf';
 import { LabelItem, StoreItem } from '../store/store';
 
-const getLabelImageSrc = (label: LabelItem): string =>
-  label.thumbnailUrl || label.imageUrl || `${import.meta.env.BASE_URL}labels/${label.reference}.jpg`;
+// Candidats à essayer dans l'ordre : les URL blob issues d'un import de fichiers ne
+// survivent pas à un rechargement de page ou à une restauration de projet JSON — dans
+// ce cas on doit se rabattre sur le fichier statique nommé d'après la référence.
+const getLabelImageCandidates = (label: LabelItem): string[] => {
+  const candidates = [label.thumbnailUrl, label.imageUrl];
+  candidates.push(`${import.meta.env.BASE_URL}labels/${label.reference}.jpg`);
+  candidates.push(`${import.meta.env.BASE_URL}${label.reference}.jpg`);
+  return Array.from(new Set(candidates.filter((src): src is string => Boolean(src))));
+};
 
 const loadImage = (src: string): Promise<{ dataUrl: string; width: number; height: number }> =>
   new Promise((resolve, reject) => {
@@ -22,6 +29,18 @@ const loadImage = (src: string): Promise<{ dataUrl: string; width: number; heigh
     img.onerror = () => reject(new Error(`Impossible de charger l'image de l'étiquette : ${src}`));
     img.src = src;
   });
+
+// Essaie chaque source candidate dans l'ordre jusqu'à ce qu'une image se charge réellement.
+const loadImageWithFallback = async (label: LabelItem) => {
+  for (const src of getLabelImageCandidates(label)) {
+    try {
+      return await loadImage(src);
+    } catch {
+      // on essaie la source suivante
+    }
+  }
+  return null;
+};
 
 // Génère un PDF prêt pour l'imprimeur : une page de garde récapitulative,
 // suivie d'une page par exemplaire commandé de chaque étiquette.
@@ -86,12 +105,12 @@ export const generatePrinterPDF = async (labels: LabelItem[], stores: StoreItem[
   }
 
   // Pages d'étiquettes : une page par exemplaire commandé, sans légende superflue
+  const missingLabels: string[] = [];
   for (const label of orderedLabels) {
     const qty = label.quantity ?? 0;
-    let image;
-    try {
-      image = await loadImage(getLabelImageSrc(label));
-    } catch {
+    const image = await loadImageWithFallback(label);
+    if (!image) {
+      missingLabels.push(label.reference);
       continue;
     }
 
@@ -110,4 +129,6 @@ export const generatePrinterPDF = async (labels: LabelItem[], stores: StoreItem[
   }
 
   doc.save(`commande_impression_etiquettes_${new Date().toISOString().slice(0, 10)}.pdf`);
+
+  return { missingLabels };
 };
