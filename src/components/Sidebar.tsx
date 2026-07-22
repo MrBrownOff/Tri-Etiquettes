@@ -16,7 +16,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab }) =
       <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-800">
         <div className="flex items-center">
           <img
-            src="/public/Interbois-Logo-Blanc.png"
+            src={`${import.meta.env.BASE_URL}Interbois-Logo-Blanc.png`}
             alt="Interbois"
             className="h-8 w-auto object-contain"
           />

@@ -201,7 +201,7 @@ export const LabelsView: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredLabels.map((label) => {
               const isSelected = selectedLabelIds.includes(label.id);
-              const initialImageSrc = label.thumbnailUrl || label.imageUrl || `/labels/${label.reference}.jpg`;
+              const initialImageSrc = label.thumbnailUrl || label.imageUrl || `${import.meta.env.BASE_URL}labels/${label.reference}.jpg`;
 
               return (
                 <div
@@ -234,10 +234,10 @@ export const LabelsView: React.FC = () => {
                         const target = e.currentTarget;
                         if (!target.dataset['triedLabels']) {
                           target.dataset['triedLabels'] = 'true';
-                          target.src = `/labels/${label.reference}.jpg`;
+                          target.src = `${import.meta.env.BASE_URL}labels/${label.reference}.jpg`;
                         } else if (!target.dataset['triedRoot']) {
                           target.dataset['triedRoot'] = 'true';
-                          target.src = `/${label.reference}.jpg`;
+                          target.src = `${import.meta.env.BASE_URL}${label.reference}.jpg`;
                         }
                       }}
                       className="h-full w-full object-contain rounded bg-white p-1 shadow-xs border border-gray-200"
