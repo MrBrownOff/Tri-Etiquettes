@@ -23,12 +23,6 @@ const loadImage = (src: string): Promise<{ dataUrl: string; width: number; heigh
     img.src = src;
   });
 
-const storeNamesForLabel = (label: LabelItem, stores: StoreItem[]): string =>
-  label.stores
-    .map((id) => stores.find((s) => s.id === id)?.name)
-    .filter((name): name is string => Boolean(name))
-    .join(', ') || '—';
-
 // Génère un PDF prêt pour l'imprimeur : une page de garde récapitulative,
 // suivie d'une page par exemplaire commandé de chaque étiquette.
 export const generatePrinterPDF = async (labels: LabelItem[], stores: StoreItem[]) => {
@@ -43,77 +37,53 @@ export const generatePrinterPDF = async (labels: LabelItem[], stores: StoreItem[
   const margin = 15;
   const total = orderedLabels.reduce((sum, l) => sum + (l.quantity ?? 0), 0);
 
-  // Page de garde — toujours condensée sur une seule page, quel que soit le nombre de références
-  doc.setFontSize(16);
-  doc.text('Bon de commande — Étiquettes', margin, margin);
-  doc.setFontSize(9);
+  const storeNames = Array.from(
+    new Set(
+      orderedLabels
+        .flatMap((label) => label.stores.map((id) => stores.find((s) => s.id === id)?.name))
+        .filter((name): name is string => Boolean(name))
+    )
+  ).sort();
+
+  // Page de garde — simple récapitulatif : nombre d'étiquettes et magasins concernés
+  doc.setFontSize(18);
+  doc.text('Bon de commande — Étiquettes', margin, margin + 5);
+  doc.setFontSize(11);
   doc.text(
     `Généré le ${new Date().toLocaleDateString('fr-CA')} — ${orderedLabels.length} référence(s), ${total} étiquette(s) au total`,
     margin,
-    margin + 5
+    margin + 15
   );
 
-  const rows = orderedLabels.map((label) => ({
-    ref: label.reference,
-    qty: label.quantity ?? 0,
-    storeNames: storeNamesForLabel(label, stores),
-  }));
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Magasin(s) concerné(s) :', margin, margin + 28);
+  doc.setFont('helvetica', 'normal');
 
-  const totalLineY = pageHeight - margin;
-  const contentTop = margin + 12;
-  const contentBottom = totalLineY - 6;
+  const contentTop = margin + 36;
+  const contentBottom = pageHeight - margin;
   const availableHeight = contentBottom - contentTop;
 
-  // Bascule automatiquement sur deux colonnes si une seule colonne ne suffit pas à tenir sur la page
-  const columns = rows.length > Math.floor(availableHeight / 4) ? 2 : 1;
-  const rowsPerColumn = Math.ceil(rows.length / columns);
-  const rowHeight = Math.min(6, Math.max(3, availableHeight / rowsPerColumn));
-  const fontSize = Math.min(9, Math.max(5.5, rowHeight * 1.7));
+  // Bascule automatiquement sur plusieurs colonnes si la liste de magasins est longue
+  const columns = storeNames.length > Math.floor(availableHeight / 7) ? 2 : 1;
+  const rowsPerColumn = Math.ceil(storeNames.length / columns) || 1;
+  const rowHeight = Math.min(8, Math.max(5, availableHeight / rowsPerColumn));
+  const colWidth = (pageWidth - margin * 2) / columns;
 
-  const gap = 8;
-  const colWidth = (pageWidth - margin * 2 - gap * (columns - 1)) / columns;
-  const refColW = colWidth * 0.32;
-  const qtyColW = colWidth * 0.14;
-  const storeColW = colWidth - refColW - qtyColW;
-
-  doc.setFontSize(fontSize);
-
-  // Tronque une chaîne pour qu'elle tienne sur une seule ligne dans la largeur donnée
-  const truncate = (text: string, maxWidth: number) => {
-    if (doc.getTextWidth(text) <= maxWidth) return text;
-    let t = text;
-    while (t.length > 1 && doc.getTextWidth(`${t}…`) > maxWidth) {
-      t = t.slice(0, -1);
-    }
-    return `${t}…`;
-  };
-
-  for (let col = 0; col < columns; col++) {
-    const colX = margin + col * (colWidth + gap);
-    let y = contentTop;
-
-    doc.setFont('helvetica', 'bold');
-    doc.text('Réf.', colX, y);
-    doc.text('Qté', colX + refColW, y);
-    doc.text('Magasin(s)', colX + refColW + qtyColW, y);
-    doc.setFont('helvetica', 'normal');
-    y += rowHeight * 0.6;
-    doc.line(colX, y, colX + colWidth, y);
-    y += rowHeight * 0.9;
-
-    const colRows = rows.slice(col * rowsPerColumn, (col + 1) * rowsPerColumn);
-    for (const row of colRows) {
-      doc.text(truncate(row.ref, refColW - 2), colX, y);
-      doc.text(String(row.qty), colX + refColW, y);
-      doc.text(truncate(row.storeNames, storeColW - 2), colX + refColW + qtyColW, y);
-      y += rowHeight;
+  doc.setFontSize(12);
+  if (storeNames.length === 0) {
+    doc.text('Aucun magasin assigné.', margin, contentTop);
+  } else {
+    for (let col = 0; col < columns; col++) {
+      const colX = margin + col * colWidth;
+      let y = contentTop;
+      const colNames = storeNames.slice(col * rowsPerColumn, (col + 1) * rowsPerColumn);
+      for (const name of colNames) {
+        doc.text(`•  ${name}`, colX, y);
+        y += rowHeight;
+      }
     }
   }
-
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`Total étiquettes à imprimer : ${total}`, margin, totalLineY);
-  doc.setFont('helvetica', 'normal');
 
   // Pages d'étiquettes : une page par exemplaire commandé, sans légende superflue
   for (const label of orderedLabels) {
