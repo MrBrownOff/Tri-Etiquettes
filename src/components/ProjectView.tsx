@@ -1,7 +1,7 @@
 // src/components/ProjectView.tsx
 import React, { useRef, useState } from 'react';
 import { useAppStore } from '../store/store';
-import { Save, Download, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Save, Download, Upload, CheckCircle2 } from 'lucide-react';
 import { generateExports } from '../utils/export';
 
 export const ProjectView: React.FC = () => {

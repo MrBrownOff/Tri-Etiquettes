@@ -1,7 +1,7 @@
 // src/components/BatchStoreAssignPopover.tsx
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAppStore, StoreItem } from '../store/store';
-import { Search, ChevronDown, Store, Tag, X } from 'lucide-react';
+import { Search, ChevronDown, Tag, X } from 'lucide-react';
 
 const getBannerName = (store: StoreItem): string => {
   if (store.banner && store.banner !== 'Indépendant' && store.banner.trim() !== '') {
