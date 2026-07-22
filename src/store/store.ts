@@ -52,6 +52,7 @@ interface AppState {
   setLabels: (labels: LabelItem[]) => void;
   updateLabel: (id: string, updatedFields: Partial<LabelItem>) => void;
   assignStoresToLabels: (labelIds: string[], storeIds: string[]) => void;
+  removeStoresFromLabels: (labelIds: string[], storeIds: string[]) => void;
   clearLabels: () => void;
 
   // Gestion de Projet (JSON)
@@ -147,6 +148,16 @@ export const useAppStore = create<AppState>()(
             if (labelIds.includes(l.id)) {
               const newStores = Array.from(new Set([...l.stores, ...storeIds]));
               return { ...l, stores: newStores };
+            }
+            return l;
+          }),
+        })),
+
+      removeStoresFromLabels: (labelIds, storeIds) =>
+        set((state) => ({
+          labels: state.labels.map((l) => {
+            if (labelIds.includes(l.id)) {
+              return { ...l, stores: l.stores.filter((id) => !storeIds.includes(id)) };
             }
             return l;
           }),
