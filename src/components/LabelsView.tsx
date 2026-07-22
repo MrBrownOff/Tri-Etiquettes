@@ -5,13 +5,12 @@ import { StoreAssignPopover } from './StoreAssignPopover';
 import { BatchStoreAssignPopover } from './BatchStoreAssignPopover';
 
 export const LabelsView: React.FC = () => {
-  const { labels, stores, setLabels, updateLabel, assignStoresToLabels } = useAppStore();
+  const { labels, stores, setLabels, updateLabel } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
-  const [targetStoreId, setTargetStoreId] = useState('');
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -78,14 +77,6 @@ export const LabelsView: React.FC = () => {
     setSelectedLabelIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
-  };
-
-  // Affectation groupée à un magasin
-  const handleBatchAssign = () => {
-    if (!targetStoreId || selectedLabelIds.length === 0) return;
-    assignStoresToLabels(selectedLabelIds, [targetStoreId]);
-    setSelectedLabelIds([]);
-    setTargetStoreId('');
   };
 
   return (

@@ -1,6 +1,6 @@
-import { Label, StoreDef } from '../store/store';
+import { LabelItem, StoreItem } from '../store/store';
 
-export const generateExports = (labels: Label[], stores: StoreDef[]) => {
+export const generateExports = (labels: LabelItem[], stores: StoreItem[]) => {
   const jsonPayload = {
     labels: labels.map(l => ({
       reference: l.reference,
