@@ -38,7 +38,7 @@ export const LabelsView: React.FC = () => {
         name: '',
         banner: '',
         stores: [],
-        quantity: 0,
+        quantity: 1,
       });
     });
 
@@ -264,12 +264,12 @@ export const LabelsView: React.FC = () => {
                           type="text"
                           inputMode="numeric"
                           maxLength={2}
-                          value={label.quantity ?? ''}
+                          value={label.quantity ?? 1}
                           onChange={(e) => {
                             const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 2);
-                            updateLabel(label.id, { quantity: digitsOnly === '' ? 0 : Number(digitsOnly) });
+                            updateLabel(label.id, { quantity: digitsOnly === '' ? 1 : Number(digitsOnly) });
                           }}
-                          placeholder="0"
+                          placeholder="1"
                           className="w-full text-center font-mono font-bold text-gray-800 bg-gray-50 border border-gray-200 rounded px-2.5 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
                         />
                       </div>
