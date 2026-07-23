@@ -196,3 +196,13 @@ export const useAppStore = create<AppState>()(
     }
   )
 );
+
+// Resynchronise l'état si le projet est modifié dans un autre onglet
+// (le localStorage est partagé, mais chaque onglet garde sa propre copie en mémoire).
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key === 'labelflow-storage') {
+      useAppStore.persist.rehydrate();
+    }
+  });
+}

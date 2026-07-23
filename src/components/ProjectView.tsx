@@ -141,8 +141,8 @@ export const ProjectView: React.FC = () => {
           <Printer size={18} className="text-slate-700" /> Bon d'impression (PDF)
         </h2>
         <p className="text-xs text-gray-500">
-          Génère un PDF prêt pour l'imprimeur : une page de garde récapitulant les étiquettes commandées
-          (nom de fichier, quantité, magasin(s)), suivie des étiquettes en autant d'exemplaires que la quantité renseignée.
+          Génère un PDF prêt pour l'imprimeur : une page de garde récapitulant le nombre total d'étiquettes
+          et les magasins concernés, suivie des étiquettes en autant d'exemplaires que la quantité renseignée.
         </p>
         <p className="text-xs font-medium text-gray-600">
           {labelsWithQuantity.length === 0
