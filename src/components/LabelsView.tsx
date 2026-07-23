@@ -6,7 +6,7 @@ import { BatchStoreAssignPopover } from './BatchStoreAssignPopover';
 import { generatePrinterPDF } from '../utils/printerExport';
 
 export const LabelsView: React.FC = () => {
-  const { labels, stores, setLabels, updateLabel } = useAppStore();
+  const { labels, stores, addLabelsBatch, deleteLabel, clearLabels, updateLabel } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -19,32 +19,24 @@ export const LabelsView: React.FC = () => {
   };
 
   // Chargement direct des images/PDFs par nom de fichier sans OCR
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
     setIsProcessing(true);
-    const newLabels: LabelItem[] = [];
+    // Pas d'URL blob persistée : elle ne survivrait pas à la session en cours.
+    // L'image est retrouvée via son nom de fichier dans public/labels/ (voir fallback d'affichage).
+    const newLabels: LabelItem[] = Array.from(files).map((file) => ({
+      id: crypto.randomUUID(),
+      reference: file.name.replace(/\.[^/.]+$/, ''), // ex: "BC0361596.jpg" -> "BC0361596"
+      filename: file.name,
+      name: '',
+      banner: '',
+      stores: [],
+      quantity: 1,
+    }));
 
-    Array.from(files).forEach((file) => {
-      // Extrait le nom sans l'extension (ex: "BC0361596.jpg" -> "BC0361596")
-      const referenceClean = file.name.replace(/\.[^/.]+$/, "");
-      const imageUrl = URL.createObjectURL(file);
-
-      newLabels.push({
-        id: crypto.randomUUID(),
-        reference: referenceClean,
-        filename: file.name,
-        thumbnailUrl: imageUrl,
-        imageUrl: imageUrl,
-        name: '',
-        banner: '',
-        stores: [],
-        quantity: 1,
-      });
-    });
-
-    setLabels([...labels, ...newLabels]);
+    await addLabelsBatch(newLabels);
     setIsProcessing(false);
 
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -53,7 +45,7 @@ export const LabelsView: React.FC = () => {
   // Vider toutes les étiquettes
   const handleClearLabels = () => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer toutes les étiquettes ?")) {
-      setLabels([]);
+      clearLabels();
     }
   };
 
@@ -341,7 +333,7 @@ export const LabelsView: React.FC = () => {
                       />
 
                       <button
-                        onClick={() => setLabels(labels.filter((l) => l.id !== label.id))}
+                        onClick={() => deleteLabel(label.id)}
                         className="text-gray-400 hover:text-red-500 transition p-1"
                         title="Supprimer l'étiquette"
                       >

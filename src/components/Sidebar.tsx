@@ -1,7 +1,8 @@
 // src/components/Sidebar.tsx
 import React from 'react';
-import { LayoutDashboard, Store, Save, Download } from 'lucide-react';
+import { LayoutDashboard, Store, Save, Download, LogOut } from 'lucide-react';
 import { useAppStore } from '../store/store';
+import { signOutUser } from './AuthGate';
 
 interface SidebarProps {
   currentTab: 'labels' | 'stores' | 'project';
@@ -69,13 +70,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab }) =
       </nav>
 
       {/* Action rapide d'export JSON de sauvegarde */}
-      <div className="p-4 border-t border-slate-800">
+      <div className="p-4 border-t border-slate-800 space-y-2">
         <button
           onClick={exportProject}
           className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 py-2.5 rounded-lg text-xs font-semibold transition"
         >
           <Download size={15} />
           Sauvegarder (.JSON)
+        </button>
+        <button
+          onClick={signOutUser}
+          className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 py-2 rounded-lg text-xs font-medium transition"
+        >
+          <LogOut size={14} />
+          Se déconnecter
         </button>
       </div>
     </aside>
