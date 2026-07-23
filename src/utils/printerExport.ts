@@ -130,5 +130,19 @@ export const generatePrinterPDF = async (labels: LabelItem[], stores: StoreItem[
 
   doc.save(`commande_impression_etiquettes_${new Date().toISOString().slice(0, 10)}.pdf`);
 
-  return { missingLabels };
+  return {
+    missingLabels,
+    summary: {
+      totalReferences: orderedLabels.length,
+      totalQuantity: total,
+      storeNames,
+      items: orderedLabels.map((label) => ({
+        reference: label.reference,
+        quantity: label.quantity ?? 0,
+        storeNames: label.stores
+          .map((id) => stores.find((s) => s.id === id)?.name)
+          .filter((name): name is string => Boolean(name)),
+      })),
+    },
+  };
 };

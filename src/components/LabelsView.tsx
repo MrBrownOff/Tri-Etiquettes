@@ -6,7 +6,7 @@ import { BatchStoreAssignPopover } from './BatchStoreAssignPopover';
 import { generatePrinterPDF } from '../utils/printerExport';
 
 export const LabelsView: React.FC = () => {
-  const { labels, stores, addLabelsBatch, deleteLabel, clearLabels, updateLabel } = useAppStore();
+  const { labels, stores, addLabelsBatch, deleteLabel, clearLabels, updateLabel, logPrintRun } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -80,7 +80,8 @@ export const LabelsView: React.FC = () => {
     const selectedLabels = labels.filter((l) => selectedLabelIds.includes(l.id));
     setIsGeneratingPDF(true);
     try {
-      const { missingLabels } = await generatePrinterPDF(selectedLabels, stores);
+      const { missingLabels, summary } = await generatePrinterPDF(selectedLabels, stores);
+      await logPrintRun(summary);
       if (missingLabels.length > 0) {
         alert(
           `Le PDF a été généré, mais l'image de ${missingLabels.length} étiquette(s) était introuvable et a été omise : ${missingLabels.join(', ')}`
