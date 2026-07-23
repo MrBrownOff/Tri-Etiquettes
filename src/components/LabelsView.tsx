@@ -1,8 +1,9 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { useAppStore, LabelItem } from '../store/store';
-import { Upload, Search, Loader2, CheckSquare, Square, Trash2 } from 'lucide-react';
+import { Upload, Search, Loader2, CheckSquare, Square, Trash2, Printer } from 'lucide-react';
 import { StoreAssignPopover } from './StoreAssignPopover';
 import { BatchStoreAssignPopover } from './BatchStoreAssignPopover';
+import { generatePrinterPDF } from '../utils/printerExport';
 
 export const LabelsView: React.FC = () => {
   const { labels, stores, setLabels, updateLabel } = useAppStore();
@@ -11,6 +12,7 @@ export const LabelsView: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -78,6 +80,25 @@ export const LabelsView: React.FC = () => {
     setSelectedLabelIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
+  };
+
+  // Génère le PDF imprimeur pour uniquement les étiquettes cochées,
+  // sans tenir compte des quantités des étiquettes non sélectionnées.
+  const handleGenerateSelectionPDF = async () => {
+    const selectedLabels = labels.filter((l) => selectedLabelIds.includes(l.id));
+    setIsGeneratingPDF(true);
+    try {
+      const { missingLabels } = await generatePrinterPDF(selectedLabels, stores);
+      if (missingLabels.length > 0) {
+        alert(
+          `Le PDF a été généré, mais l'image de ${missingLabels.length} étiquette(s) était introuvable et a été omise : ${missingLabels.join(', ')}`
+        );
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Impossible de générer le PDF.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   return (
@@ -176,12 +197,20 @@ export const LabelsView: React.FC = () => {
               </button>
             </div>
 
-            {/* Affectation en masse */}
+            {/* Affectation en masse + impression de la sélection */}
             <div className="flex items-center gap-2">
               <BatchStoreAssignPopover
                 selectedLabelIds={selectedLabelIds}
                 onComplete={() => setSelectedLabelIds([])} // Décoche les étiquettes après l'affectation
               />
+              <button
+                onClick={handleGenerateSelectionPDF}
+                disabled={selectedLabelIds.length === 0 || isGeneratingPDF}
+                className="bg-slate-900 hover:bg-slate-800 disabled:bg-gray-200 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition shadow-xs whitespace-nowrap flex items-center gap-1.5"
+              >
+                {isGeneratingPDF ? <Loader2 size={15} className="animate-spin" /> : <Printer size={15} />}
+                Générer le PDF (sélection)
+              </button>
             </div>
           </div>
         )}
