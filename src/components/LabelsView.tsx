@@ -192,10 +192,7 @@ export const LabelsView: React.FC = () => {
 
             {/* Affectation en masse + impression de la sélection */}
             <div className="flex items-center gap-2">
-              <BatchStoreAssignPopover
-                selectedLabelIds={selectedLabelIds}
-                onComplete={() => setSelectedLabelIds([])} // Décoche les étiquettes après l'affectation
-              />
+              <BatchStoreAssignPopover selectedLabelIds={selectedLabelIds} />
               <button
                 onClick={handleGenerateSelectionPDF}
                 disabled={selectedLabelIds.length === 0 || isGeneratingPDF}
