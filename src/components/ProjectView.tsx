@@ -4,9 +4,10 @@ import { useAppStore } from '../store/store';
 import { Save, Download, Upload, CheckCircle2, Printer, Loader2 } from 'lucide-react';
 import { generateExports } from '../utils/export';
 import { generatePrinterPDF } from '../utils/printerExport';
+import { PrintHistoryList } from './PrintHistoryList';
 
 export const ProjectView: React.FC = () => {
-  const { labels, stores, exportProject, importProject } = useAppStore();
+  const { labels, stores, printHistory, exportProject, importProject, logPrintRun } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -37,7 +38,8 @@ export const ProjectView: React.FC = () => {
   const handleGeneratePrinterPDF = async () => {
     setIsGeneratingPDF(true);
     try {
-      const { missingLabels } = await generatePrinterPDF(labels, stores);
+      const { missingLabels, summary } = await generatePrinterPDF(labels, stores);
+      await logPrintRun(summary);
       if (missingLabels.length > 0) {
         alert(
           `Le PDF a été généré, mais l'image de ${missingLabels.length} étiquette(s) était introuvable et a été omise : ${missingLabels.join(', ')}`
@@ -158,6 +160,8 @@ export const ProjectView: React.FC = () => {
           {isGeneratingPDF ? 'Génération en cours...' : "Générer le PDF pour l'imprimeur"}
         </button>
       </div>
+
+      <PrintHistoryList entries={printHistory} />
     </div>
   );
 };

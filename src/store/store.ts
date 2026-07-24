@@ -4,12 +4,18 @@ import { onAuthStateChanged } from 'firebase/auth';
 import {
   collection,
   doc,
+  addDoc,
   deleteDoc,
   updateDoc,
   onSnapshot,
   writeBatch,
   arrayUnion,
   arrayRemove,
+  query,
+  orderBy,
+  limit,
+  serverTimestamp,
+  Timestamp,
   WriteBatch,
 } from 'firebase/firestore';
 import { auth, db } from '../firebase';
@@ -32,6 +38,17 @@ export interface LabelItem {
   quantity?: number; // Quantité commandée (0-99)
 }
 
+// Trace historisée d'un PDF généré pour l'imprimeur : on ne conserve pas le fichier
+// lui-même (ça demanderait Firebase Storage), seulement les informations qu'il contenait.
+export interface PrintHistoryEntry {
+  id: string;
+  createdAt: Timestamp | null;
+  totalReferences: number;
+  totalQuantity: number;
+  storeNames: string[];
+  items: { reference: string; quantity: number; storeNames: string[] }[];
+}
+
 // Détection automatique de la bannière à partir du nom du magasin
 export const detectBannerFromName = (name: string, explicitBanner?: string): string => {
   // Si une bannière valide a déjà été fournie manuellement, on la garde
@@ -51,6 +68,7 @@ export const detectBannerFromName = (name: string, explicitBanner?: string): str
 interface AppState {
   labels: LabelItem[];
   stores: StoreItem[];
+  printHistory: PrintHistoryEntry[];
   isLoading: boolean;
 
   // Actions Magasins
@@ -72,10 +90,20 @@ interface AppState {
   // Gestion de Projet (JSON)
   exportProject: () => void;
   importProject: (jsonData: { labels: LabelItem[]; stores: StoreItem[] }) => Promise<void>;
+
+  // Historique des impressions
+  logPrintRun: (entry: {
+    totalReferences: number;
+    totalQuantity: number;
+    storeNames: string[];
+    items: { reference: string; quantity: number; storeNames: string[] }[];
+  }) => Promise<void>;
 }
 
 const STORES_COLLECTION = 'stores';
 const LABELS_COLLECTION = 'labels';
+const PRINT_HISTORY_COLLECTION = 'printHistory';
+const PRINT_HISTORY_LIMIT = 50;
 
 const DEFAULT_STORES: Omit<StoreItem, 'id'>[] = [
   { name: 'Canac Lévis', banner: 'Canac' },
@@ -103,6 +131,7 @@ const LABEL_WRITE_DEBOUNCE_MS = 500;
 export const useAppStore = create<AppState>()((set, get) => ({
   labels: [],
   stores: [],
+  printHistory: [],
   isLoading: true,
 
   addStore: async (name, banner) => {
@@ -258,6 +287,13 @@ export const useAppStore = create<AppState>()((set, get) => ({
       batch.set(doc(db, LABELS_COLLECTION, id), rest);
     });
   },
+
+  logPrintRun: async (entry) => {
+    await addDoc(collection(db, PRINT_HISTORY_COLLECTION), {
+      ...entry,
+      createdAt: serverTimestamp(),
+    });
+  },
 }));
 
 let storesLoaded = false;
@@ -265,6 +301,7 @@ let labelsLoaded = false;
 let defaultStoresSeeded = false;
 let unsubscribeStores: (() => void) | null = null;
 let unsubscribeLabels: (() => void) | null = null;
+let unsubscribePrintHistory: (() => void) | null = null;
 
 const markLoadedIfReady = () => {
   if (storesLoaded && labelsLoaded) {
@@ -310,15 +347,26 @@ const startFirestoreSync = () => {
     },
     (error) => console.error('Erreur de synchronisation des étiquettes :', error)
   );
+
+  unsubscribePrintHistory = onSnapshot(
+    query(collection(db, PRINT_HISTORY_COLLECTION), orderBy('createdAt', 'desc'), limit(PRINT_HISTORY_LIMIT)),
+    (snapshot) => {
+      const printHistory = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as PrintHistoryEntry);
+      useAppStore.setState({ printHistory });
+    },
+    (error) => console.error("Erreur de synchronisation de l'historique d'impression :", error)
+  );
 };
 
 const stopFirestoreSync = () => {
   unsubscribeStores?.();
   unsubscribeLabels?.();
+  unsubscribePrintHistory?.();
   unsubscribeStores = null;
   unsubscribeLabels = null;
+  unsubscribePrintHistory = null;
   defaultStoresSeeded = false;
-  useAppStore.setState({ labels: [], stores: [], isLoading: true });
+  useAppStore.setState({ labels: [], stores: [], printHistory: [], isLoading: true });
 };
 
 onAuthStateChanged(auth, (user) => {
